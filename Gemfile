@@ -36,6 +36,7 @@ gem "bootsnap", require: false
 
 gem "devise"
 gem 'active_interaction', '~> 5.3'
+gem "blueprinter"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem
@@ -49,7 +50,8 @@ group :development, :test do
 
   gem "rspec-rails"
   gem "factory_bot_rails"
-  gem 'faker'
+  gem "faker"
+  gem "rspec-sqlimit", git: "https://github.com/k0r1sh/rspec-sqlimit" # This fork includes an equal matcher.
 end
 
 group :development do
