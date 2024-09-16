@@ -52,6 +52,7 @@ group :development, :test do
   gem "factory_bot_rails"
   gem "faker"
   gem "rspec-sqlimit", git: "https://github.com/k0r1sh/rspec-sqlimit" # This fork includes an equal matcher.
+  gem 'shoulda-matchers', '~> 6.0'
 end
 
 group :development do
