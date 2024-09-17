@@ -37,6 +37,7 @@ gem "bootsnap", require: false
 gem "devise"
 gem 'active_interaction', '~> 5.3'
 gem "blueprinter"
+gem "with_advisory_lock"
 
 group :development, :test do
   # See https://guides.rubyonrails.org/debugging_rails_applications.html#debugging-with-the-debug-gem

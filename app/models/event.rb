@@ -2,6 +2,7 @@
 
 class Event < ApplicationRecord
   belongs_to :user, inverse_of: :events
+  has_many :bookings, inverse_of: :event
 
   validates :user_id, :name, :description, :address, :starts_at, :max_tickets, presence: true
   validates :name, :address, length: { in: 1..256 }
