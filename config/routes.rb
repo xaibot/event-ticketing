@@ -16,6 +16,7 @@ Rails.application.routes.draw do
     resources :events, only: [ :create, :index ] do
       collection do
         get :booked
+        get :authored
       end
     end
   end

@@ -13,15 +13,19 @@ def error_name_for(missing_field:)
 end
 
 def event_fields
-  [ 'id', 'name', 'description', 'address', 'starts_at', 'max_tickets' ]
+  [ 'id', 'name', 'description', 'address', 'starts_at', 'max_tickets', 'user_id' ]
 end
 
-def event_fields_without_id
-  event_fields - %w[id]
+def event_fields_without_ids
+  event_fields - %w[id user_id]
 end
 
 def trigger_list_events_request
   get :index, params:
+end
+
+def trigger_authored_events_request
+  get :authored, params:
 end
 
 RSpec.describe EventsController do
@@ -47,7 +51,7 @@ RSpec.describe EventsController do
     end
 
     context "with valid parameters" do
-      let(:params) { event_attributes_for(event:, fields: event_fields_without_id) }
+      let(:params) { event_attributes_for(event:, fields: event_fields_without_ids) }
 
       it "returns a successful response" do
         expect(create_event).to be_successful
@@ -74,7 +78,7 @@ RSpec.describe EventsController do
         it "includes the posted data" do
           create_event
 
-          expect(response.parsed_body.slice(*event_fields_without_id)).to eq(params)
+          expect(response.parsed_body.slice(*event_fields_without_ids)).to eq(params)
         end
 
         it "excludes filtered-out fields" do
@@ -87,10 +91,10 @@ RSpec.describe EventsController do
 
     context "with invalid parameters" do
       let(:params) { event_attributes_for(event:, fields:) }
-      let(:fields) { event_fields_without_id }
+      let(:fields) { event_fields_without_ids }
 
       context "when one of the parameters is missing" do
-        let(:fields) { event_fields_without_id.excluding(event_fields_without_id.sample) }
+        let(:fields) { event_fields_without_ids.excluding(event_fields_without_ids.sample) }
 
         it "does not create a new Event" do
           expect { create_event }.to change(Event, :count).by(0)
@@ -103,9 +107,9 @@ RSpec.describe EventsController do
         end
       end
 
-      event_fields_without_id.each do |missing_field|
+      event_fields_without_ids.each do |missing_field|
         context "when the '#{missing_field}' are missing" do
-          let(:fields) { event_fields_without_id.excluding(missing_field) }
+          let(:fields) { event_fields_without_ids.excluding(missing_field) }
 
           it "retuns a proper error message" do
             create_event
@@ -229,6 +233,90 @@ RSpec.describe EventsController do
             trigger_list_events_request
             Event.first.update(description: Faker::Lorem.sentence)
             10.times { trigger_list_events_request }
+          end.to(
+            equal_query_limit(2).with(/#{query_for_listing_events}/)
+          )
+        end
+      end
+    end
+  end
+
+  describe "#authored" do
+    subject(:authored_events) { trigger_authored_events_request }
+
+    let(:user_2) { create(:user) }
+
+    let!(:event_group_1) { create_list(:event, 10, user: user) }
+    let!(:event_group_2) { create_list(:event, 10, user: user_2) }
+
+    let(:params) { { limit:, offset:, user_id: user.id } }
+    let(:limit) { 4 }
+    let(:offset) { 2 }
+
+    context "when the user is not logged in" do
+      before { sign_out(user) }
+
+      it "retuns an error message telling the user to sign in" do
+        authored_events
+
+        expect(response.body).to be_blank
+        expect(response).to have_http_status(302)
+      end
+    end
+
+    it "retuns an array of events" do
+      authored_events
+
+      expect(response.parsed_body).to be_an(Array)
+      expect(response.parsed_body).to all be_a(Hash)
+      expect(response.parsed_body.map(&:keys).map(&:sort)).to all match(event_fields.sort)
+    end
+
+    it "limits the collection size to the given limit parameter" do
+      authored_events
+
+      expect(response.parsed_body.size).to eq(limit)
+    end
+
+    it "applies the provided the offset" do
+      authored_events
+
+      expect(response.parsed_body.map { _1['id'] }).to eq(event_group_1[offset..offset+limit-1].map(&:id))
+    end
+
+    describe "caching" do
+      let(:memory_store) { ActiveSupport::Cache.lookup_store(:memory_store) }
+      let(:cache) { Rails.cache }
+
+      before do
+        allow(Rails).to receive(:cache).and_return(memory_store)
+        Rails.cache.clear
+      end
+
+      let(:query_for_listing_events) do
+        'SELECT "events"\.\* FROM "events" ' \
+        'WHERE "events"\."user_id" = \$1 ' \
+        'ORDER BY "events"\."id" ASC LIMIT \$2 OFFSET \$3'
+      end
+
+      context "when the events are not modified between identical requests" do
+        it "fetches the events once" do
+          expect do
+            10.times { trigger_authored_events_request }
+          end.to(
+            equal_query_limit(1).with(/#{query_for_listing_events}/)
+          )
+        end
+      end
+
+      context "when an event is modified between identical requests" do
+        let(:offset) { 0 }
+
+        it "fetches the events twice" do
+          expect do
+            trigger_authored_events_request
+            Event.first.update(description: Faker::Lorem.sentence)
+            10.times { trigger_authored_events_request }
           end.to(
             equal_query_limit(2).with(/#{query_for_listing_events}/)
           )

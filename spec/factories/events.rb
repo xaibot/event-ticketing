@@ -1,5 +1,7 @@
 FactoryBot.define do
   factory :event do
+    association :user
+
     name { "'#{Faker::Game.title}' #{%w[conference gathering].sample}" }
     description { Faker::Lorem.sentence }
     address { Faker::Address.full_address }

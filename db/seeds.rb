@@ -9,12 +9,18 @@
 #   end
 
 
-def seed_events
+def seed_users
+  FactoryBot.create_list(:user, 50)
+end
+
+def seed_events(users:)
   print "Seeding events: "
 
   # Generate 200_000 records
   200.times.each do
-    events = FactoryBot.build_list(:event, 1_000).map { _1.attributes.except(*%w[id created_at updated_at]) }
+    events = FactoryBot.build_list(:event, 1_000, user: users.sample)
+                       .map { _1.attributes.except(*%w[id created_at updated_at]) }
+
     Event.upsert_all(events, unique_by: :id)
     print '.'
   end
@@ -22,4 +28,5 @@ def seed_events
   puts
 end
 
-seed_events
+users = seed_users
+seed_events(users:)

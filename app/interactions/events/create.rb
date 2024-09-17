@@ -3,7 +3,7 @@
 class Events::Create < ActiveInteraction::Base
   string :name, :description, :address
   date_time :starts_at
-  integer :max_tickets
+  integer :max_tickets, :user_id
 
   def execute
     event = Event.new(inputs)
