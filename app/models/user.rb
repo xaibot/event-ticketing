@@ -7,4 +7,5 @@ class User < ApplicationRecord
          :recoverable, :rememberable, :validatable
 
   has_many :events, inverse_of: :user
+  has_many :bookings, inverse_of: :user
 end

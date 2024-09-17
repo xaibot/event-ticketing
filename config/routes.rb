@@ -15,8 +15,13 @@ Rails.application.routes.draw do
 
     resources :events, only: [ :create, :index ] do
       collection do
-        get :booked
         get :authored
+      end
+    end
+
+    resources :bookings, only: [ :create ] do
+      collection do
+        get :list_mine
       end
     end
   end

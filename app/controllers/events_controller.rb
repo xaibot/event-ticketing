@@ -11,28 +11,13 @@ class EventsController < ApplicationController
 
   def create
     event = Events::Create.run!(params_with_current_user)
-    render status: :created, json: EventBlueprint.render(event)
 
-  rescue ActiveInteraction::InvalidInteractionError => ex
-    render json: { error: ex.message }, status: :unprocessable_entity
+    render status: :created, json: EventBlueprint.render(event)
   end
 
   def index
     events = Events::List.run!(params)
 
     render status: :ok, json: EventBlueprint.render(events)
-  end
-
-  ## Should this be in BookingsController instead of here?
-  # def booked
-  #   events = Events::ListBookedByUser.run!(params_with_current_user)
-  #
-  #   render status: :ok, json: EventBlueprint.render(events)
-  # end
-
-  private
-
-  def params_with_current_user
-    params.merge(user_id: current_user.id)
   end
 end
