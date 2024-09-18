@@ -6,7 +6,7 @@ FactoryBot.define do
     association :user
 
     after :build do |booking|
-      booking.booked_tickets = rand(1..booking.event.max_tickets)
+      booking.booked_tickets ||= rand(1..booking.event.max_tickets)
     end
   end
 end
