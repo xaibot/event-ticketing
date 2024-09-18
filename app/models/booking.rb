@@ -7,4 +7,5 @@ class Booking < ApplicationRecord
   validates :event_id, :user_id, :booked_tickets, presence: true
   validates :event_id, numericality: { greater_than: 0 }
   validates :user_id, numericality: { greater_than: 0 }
+  validates :booked_tickets, numericality: { greater_than_or_equal_to: 0 }
 end
