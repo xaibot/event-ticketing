@@ -17,7 +17,7 @@ def booking_params_for(booking:, fields: booking_fields, override: nil)
          .merge(**override&.with_indifferent_access || {})
 end
 
-def error_name_for(missing_field:)
+def booking_error_name_for(missing_field:)
   field_to_param(missing_field).capitalize.gsub('_id', '').gsub('_', ' ')
 end
 
@@ -158,7 +158,7 @@ RSpec.describe BookingsController do
           it "retuns a proper error message" do
             create_booking
 
-            expect(response.parsed_body['error']).to match("#{error_name_for(missing_field:)} is required")
+            expect(response.parsed_body['error']).to match("#{booking_error_name_for(missing_field:)} is required")
           end
         end
       end

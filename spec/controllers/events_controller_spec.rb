@@ -2,7 +2,7 @@
 
 require 'rails_helper'
 
-def error_name_for(missing_field:)
+def event_error_name_for(missing_field:)
   missing_field.capitalize.gsub('_', ' ')
 end
 
@@ -114,7 +114,7 @@ RSpec.describe EventsController do
           it "retuns a proper error message" do
             create_event
 
-            expect(response.parsed_body['error']).to match("#{error_name_for(missing_field:)} is required")
+            expect(response.parsed_body['error']).to match("#{event_error_name_for(missing_field:)} is required")
           end
         end
       end
