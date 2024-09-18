@@ -7,4 +7,5 @@ class Event < ApplicationRecord
   validates :name, :address, length: { in: 1..256 }
   validates :user_id, numericality: { greater_than: 0 }
   validates :max_tickets, numericality: { greater_than: 0 }
+  validates :booked_tickets, numericality: { greater_than_or_equal_to: 0 }
 end

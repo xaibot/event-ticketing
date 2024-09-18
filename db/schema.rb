@@ -21,6 +21,7 @@ ActiveRecord::Schema[7.2].define(version: 2024_09_13_164239) do
     t.string "address", null: false
     t.datetime "starts_at", null: false
     t.integer "max_tickets", null: false
+    t.integer "booked_tickets", default: 0, null: false
     t.datetime "created_at", null: false
     t.datetime "updated_at", null: false
     t.index ["user_id"], name: "index_events_on_user_id"

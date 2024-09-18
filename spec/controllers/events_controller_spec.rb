@@ -2,29 +2,29 @@
 
 require 'rails_helper'
 
+def error_name_for(missing_field:)
+  missing_field.capitalize.gsub('_', ' ')
+end
+
 def event_attributes_for(event:, fields: event_fields)
   event.attributes
        .slice(*fields)
        .tap { _1['starts_at'] = _1['starts_at']&.iso8601 }
 end
 
-def error_name_for(missing_field:)
-  missing_field.capitalize.gsub('_', ' ')
-end
-
 def event_fields
   [ 'id', 'name', 'description', 'address', 'starts_at', 'max_tickets', 'user_id' ]
 end
 
-def event_fields_without_ids
+def event_fields_for_create
   event_fields - %w[id user_id]
 end
 
-def trigger_list_events_request
+def perform_list_events_request
   get :index, params:
 end
 
-def trigger_authored_events_request
+def perform_authored_events_request
   get :authored, params:
 end
 
@@ -36,10 +36,10 @@ RSpec.describe EventsController do
   describe "#create" do
     subject(:create_event) { post(:create, params:, as: :json) }
 
-    let!(:event) { build(:event) }
+    let(:event) { build(:event) }
 
     context "when the user is not logged in" do
-      let(:params) { event_attributes_for(event:) }
+      let(:params) { event_attributes_for(event:, fields: event_fields_for_create) }
 
       before { sign_out(user) }
 
@@ -51,7 +51,7 @@ RSpec.describe EventsController do
     end
 
     context "with valid parameters" do
-      let(:params) { event_attributes_for(event:, fields: event_fields_without_ids) }
+      let(:params) { event_attributes_for(event:, fields: event_fields_for_create) }
 
       it "returns a successful response" do
         expect(create_event).to be_successful
@@ -78,7 +78,7 @@ RSpec.describe EventsController do
         it "includes the posted data" do
           create_event
 
-          expect(response.parsed_body.slice(*event_fields_without_ids)).to eq(params)
+          expect(response.parsed_body.slice(*event_fields_for_create)).to eq(params)
         end
 
         it "excludes filtered-out fields" do
@@ -91,10 +91,10 @@ RSpec.describe EventsController do
 
     context "with invalid parameters" do
       let(:params) { event_attributes_for(event:, fields:) }
-      let(:fields) { event_fields_without_ids }
+      let(:fields) { event_fields_for_create }
 
       context "when one of the parameters is missing" do
-        let(:fields) { event_fields_without_ids.excluding(event_fields_without_ids.sample) }
+        let(:fields) { event_fields_for_create.excluding(event_fields_for_create.sample) }
 
         it "does not create a new Event" do
           expect { create_event }.to change(Event, :count).by(0)
@@ -107,9 +107,9 @@ RSpec.describe EventsController do
         end
       end
 
-      event_fields_without_ids.each do |missing_field|
+      event_fields_for_create.each do |missing_field|
         context "when the '#{missing_field}' are missing" do
-          let(:fields) { event_fields_without_ids.excluding(missing_field) }
+          let(:fields) { event_fields_for_create.excluding(missing_field) }
 
           it "retuns a proper error message" do
             create_event
@@ -164,7 +164,7 @@ RSpec.describe EventsController do
   end
 
   describe "#list" do
-    subject(:list_events) { trigger_list_events_request }
+    subject(:list_events) { perform_list_events_request }
 
     let!(:events) { create_list(:event, 10) }
     let(:params) { { limit:, offset: } }
@@ -218,7 +218,7 @@ RSpec.describe EventsController do
       context "when the events are not modified between identical requests" do
         it "fetches the events once" do
           expect do
-            10.times { trigger_list_events_request }
+            10.times { perform_list_events_request }
           end.to(
             equal_query_limit(1).with(/#{query_for_listing_events}/)
           )
@@ -230,9 +230,9 @@ RSpec.describe EventsController do
 
         it "fetches the events twice" do
           expect do
-            trigger_list_events_request
+            perform_list_events_request
             Event.first.update(description: Faker::Lorem.sentence)
-            10.times { trigger_list_events_request }
+            10.times { perform_list_events_request }
           end.to(
             equal_query_limit(2).with(/#{query_for_listing_events}/)
           )
@@ -242,7 +242,7 @@ RSpec.describe EventsController do
   end
 
   describe "#authored" do
-    subject(:authored_events) { trigger_authored_events_request }
+    subject(:authored_events) { perform_authored_events_request }
 
     let(:user_2) { create(:user) }
 
@@ -302,7 +302,7 @@ RSpec.describe EventsController do
       context "when the events are not modified between identical requests" do
         it "fetches the events once" do
           expect do
-            10.times { trigger_authored_events_request }
+            10.times { perform_authored_events_request }
           end.to(
             equal_query_limit(1).with(/#{query_for_listing_events}/)
           )
@@ -314,9 +314,9 @@ RSpec.describe EventsController do
 
         it "fetches the events twice" do
           expect do
-            trigger_authored_events_request
+            perform_authored_events_request
             Event.first.update(description: Faker::Lorem.sentence)
-            10.times { trigger_authored_events_request }
+            10.times { perform_authored_events_request }
           end.to(
             equal_query_limit(2).with(/#{query_for_listing_events}/)
           )
